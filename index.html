@@ -1,1 +1,579 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบตรวจจับป้ายทะเบียนและบริหารลานจอดรถ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f4f6f9;
+            --bg-card: #ffffff;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --primary-light: #e0f2fe;
+            --secondary: #475569;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-orange: #f59e0b;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+            --radius: 12px;
+        }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Prompt', sans-serif; background: var(--bg-main); color: var(--text-main); line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* Navbar */
+        .top-navbar { background: #ffffff; padding: 14px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 50; }
+        .brand { font-size: 19px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .brand span { color: var(--text-main); font-weight: 400; }
+        .nav-links { display: flex; gap: 10px; align-items: center; }
+
+        /* Buttons */
+        button { font-family: 'Prompt', sans-serif; background: var(--primary); color: white; border: none; padding: 9px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        button:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-demo { background: var(--accent-orange); }
+        .btn-demo:hover { background: #d97706; }
+        .btn-danger { background: var(--accent-red); }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-secondary { background: #f1f5f9; color: var(--secondary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: #e2e8f0; color: var(--text-main); }
+        .btn-outline-danger { background: #fff; color: var(--accent-red); border: 1px solid #fecaca; }
+        .btn-outline-danger:hover { background: #fef2f2; color: #dc2626; }
+
+        /* Containers */
+        .main-container { max-width: 1000px; width: 92%; margin: 30px auto; padding: 28px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border-color); }
+        .auth-card { max-width: 380px; width: 90%; margin: 50px auto; padding: 32px 28px; background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); text-align: center; }
+
+        /* Forms */
+        .input-group { margin-bottom: 14px; text-align: left; }
+        .input-group label { display: block; font-size: 13px; font-weight: 500; color: var(--secondary); margin-bottom: 4px; }
+        input[type="text"], input[type="password"], input[type="email"] { width: 100%; padding: 11px 14px; border: 1px solid var(--border-color); background: #f8fafc; color: var(--text-main); border-radius: 8px; font-size: 14px; font-family: 'Prompt', sans-serif; transition: 0.2s; }
+        input:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15); }
+
+        /* Inner Tabs */
+        .inner-nav { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+        .tab-btn { background: transparent; color: var(--text-sub); border-radius: 6px; padding: 8px 16px; font-weight: 500; }
+        .tab-btn:hover { background: #f1f5f9; color: var(--text-main); transform: none; box-shadow: none; }
+        .tab-btn.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+
+        /* CCTV Grid */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .camera-card { background: #ffffff; border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .screen { height: 220px; background: #0f172a; display: flex; align-items: center; justify-content: center; position: relative; }
+        .overlay { position: absolute; top: 12px; left: 12px; font-size: 11px; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); padding: 4px 10px; border-radius: 4px; color: #34d399; font-weight: 600; letter-spacing: 0.5px; }
+        .detection-box { border: 2px dashed #34d399; padding: 14px 24px; border-radius: 8px; text-align: center; background: rgba(52, 211, 153, 0.1); }
+        .plate-tag { background: #fbbf24; color: #1e293b; font-weight: 700; padding: 3px 12px; border-radius: 4px; font-size: 18px; margin-top: 6px; display: inline-block; letter-spacing: 1px; border: 1px solid #d97706; }
+        .cam-controls { padding: 18px; background: #fafafa; border-top: 1px solid var(--border-color); min-height: 85px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; }
+
+        /* Table */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { padding: 12px 14px; text-align: left; }
+        th { background: #f8fafc; color: var(--secondary); font-weight: 600; border-bottom: 2px solid var(--border-color); }
+        td { border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        tbody tr:hover { background: #f8fafc; }
+
+        /* Badges */
+        .badge-in { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge-out { background: #f1f5f9; color: var(--secondary); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .role-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-left: 6px; font-weight: 600; }
+        .role-admin { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .role-user { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+        .role-guest { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
+        /* Alerts & Captcha */
+        .alert-box { padding: 10px 14px; margin-bottom: 16px; border-radius: 8px; font-size: 13px; text-align: left; }
+        .alert-error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+        .alert-success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #059669; }
+        .captcha-box { display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px; }
+        .captcha-code { font-family: monospace; font-size: 20px; font-weight: 700; letter-spacing: 4px; color: var(--primary); background: #ffffff; padding: 4px 12px; border-radius: 6px; border: 1px dashed var(--primary); }
+
+        .hidden { display: none !important; }
+        
+        @media (max-width: 640px) {
+            .grid { grid-template-columns: 1fr; }
+            .top-navbar { padding: 12px 16px; flex-direction: column; gap: 10px; }
+            .main-container { padding: 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-navbar">
+        <div class="brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            LPR Guard <span>| ระบบตรวจจับป้ายทะเบียน</span>
+        </div>
+        <div class="nav-links" id="guest-nav">
+            <button class="btn-demo" onclick="enterAsGuest()">ทดลองใช้งานระบบ</button>
+            <button class="btn-secondary" onclick="showAuthPage('login')">เข้าสู่ระบบ</button>
+            <button onclick="showAuthPage('register')">สมัครสมาชิก</button>
+        </div>
+        <div class="nav-links hidden" id="user-nav">
+            <span id="user-greeting" style="color: var(--text-sub); font-size: 14px;"></span>
+            <button class="btn-outline-danger" onclick="handleLogout()">ออกจากระบบ</button>
+        </div>
+    </div>
+
+    <div id="home-view" class="main-container" style="text-align: center; padding: 50px 20px;">
+        <h2 style="font-size: 24px; color: var(--text-main); margin-bottom: 12px;">ระบบกล้องอัจฉริยะตรวจจับป้ายทะเบียน</h2>
+        <p style="color: var(--text-sub); max-width: 580px; margin: 0 auto 28px auto; font-size: 15px;">
+            บริหารจัดการเวลาเข้า-ออก ตรวจจับทะเบียนรถยนต์แบบเรียลไทม์ และบันทึกประวัติอย่างเป็นระเบียบ ปลอดภัย และแม่นยำ
+        </p>
+        <button class="btn-demo" style="padding: 12px 28px; font-size: 15px; border-radius: 8px;" onclick="enterAsGuest()">
+            คลิกเพื่อทดลองใช้งาน (ไม่ต้องลงทะเบียน)
+        </button>
+    </div>
+
+    <div id="login-view" class="auth-card hidden">
+        <h2 style="margin-bottom: 6px; font-size: 20px;">เข้าสู่ระบบ</h2>
+        <p style="color: var(--text-sub); font-size: 13px; margin-bottom: 20px;">กรอกข้อมูลเพื่อเข้าใช้งานระบบ</p>
+        <div id="login-alert" class="alert-box alert-error hidden"></div>
+        <div class="input-group">
+            <label>ชื่อผู้ใช้ หรือ อีเมล</label>
+            <input type="text" id="login-username" placeholder="กรอกชื่อผู้ใช้ หรือ อีเมล">
+        </div>
+        <div class="input-group">
+            <label>รหัสผ่าน</label>
+            <input type="password" id="login-password" placeholder="กรอกรหัสผ่าน">
+        </div>
+        <button style="width: 100%; margin-top: 10px;" onclick="handleLogin()">เข้าสู่ระบบ</button>
+        <button class="btn-secondary" style="width: 100%; margin-top: 8px;" onclick="enterAsGuest()">เข้าใช้งานแบบผู้เข้าชม</button>
+        <p style="margin-top: 18px; font-size: 13px; color: var(--text-sub);">
+            ยังไม่มีบัญชีใช่ไหม? <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 500;" onclick="showAuthPage('register')">สมัครสมาชิก</a>
+        </p>
+    </div>
+
+    <div id="register-view" class="auth-card hidden">
+        <h2 style="margin-bottom: 6px; font-size: 20px;">สมัครสมาชิกใหม่</h2>
+        <p style="color: var(--text-sub); font-size: 13px; margin-bottom: 20px;">สร้างบัญชีผู้ใช้งานทั่วไป</p>
+        <div id="register-alert" class="alert-box hidden"></div>
+        <div class="input-group">
+            <label>ชื่อผู้ใช้งาน (Username)</label>
+            <input type="text" id="reg-username" placeholder="ตั้งชื่อผู้ใช้">
+        </div>
+        <div class="input-group">
+            <label>อีเมล (Email)</label>
+            <input type="email" id="reg-email" placeholder="example@mail.com">
+        </div>
+        <div class="input-group">
+            <label>รหัสผ่าน (Password)</label>
+            <input type="password" id="reg-password" placeholder="ตั้งรหัสผ่าน">
+        </div>
+        
+        <div class="captcha-box">
+            <span style="font-size: 13px; color: var(--secondary);">รหัสความปลอดภัย:</span>
+            <span class="captcha-code" id="captcha-display"></span>
+            <button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 12px;" onclick="generateCaptcha()">รีเฟรช</button>
+        </div>
+        <div class="input-group">
+            <input type="text" id="reg-captcha" placeholder="กรอกรหัสตัวอักษรด้านบน">
+        </div>
+
+        <button style="width: 100%; margin-top: 10px;" onclick="handleRegister()">ยืนยันการลงทะเบียน</button>
+        <p style="margin-top: 18px; font-size: 13px; color: var(--text-sub);">
+            มีบัญชีอยู่แล้ว? <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 500;" onclick="showAuthPage('login')">เข้าสู่ระบบ</a>
+        </p>
+    </div>
+
+    <div id="dashboard-view" class="main-container hidden">
+        <div class="inner-nav">
+            <button id="tab-cctv-btn" class="tab-btn active" onclick="switchTab('cctv')">ดูกล้องสด</button>
+            <button id="tab-records-btn" class="tab-btn" onclick="switchTab('records')">ประวัติการจอด</button>
+            <button id="tab-users-btn" class="tab-btn hidden" onclick="switchTab('users')">รายชื่อสมาชิก (Admin)</button>
+        </div>
+
+        <div id="sub-cctv">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text-main);">มุมมองกล้อง CCTV อัจฉริยะ</h3>
+            <div class="grid">
+                <div class="camera-card">
+                    <div class="screen" id="cam-screen-1">
+                        <span class="overlay">● LIVE | CAM-01 (ทางเข้า A)</span>
+                        <span style="color: #64748b; font-size: 13px;">ไม่มีการตรวจพบรถยนต์</span>
+                    </div>
+                    <div class="cam-controls" id="cam-ctrl-1">
+                        <button onclick="simulateEnter('CAM-01', 1)">จำลองเหตุการณ์: รถเข้า</button>
+                    </div>
+                </div>
+                <div class="camera-card">
+                    <div class="screen" id="cam-screen-2">
+                        <span class="overlay">● LIVE | CAM-02 (ทางออก B)</span>
+                        <span style="color: #64748b; font-size: 13px;">ไม่มีการตรวจพบรถยนต์</span>
+                    </div>
+                    <div class="cam-controls" id="cam-ctrl-2">
+                        <button onclick="simulateEnter('CAM-02', 2)">จำลองเหตุการณ์: รถเข้า</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="sub-records" class="hidden">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-main);">ประวัติการเข้า-ออก และระยะเวลาจอด</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>กล้อง</th>
+                            <th>ป้ายทะเบียน</th>
+                            <th>เวลาเข้า</th>
+                            <th>เวลาออก</th>
+                            <th>ระยะเวลาที่จอด</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="sub-users" class="hidden">
+            <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 12px; color: var(--text-main);">รายชื่อผู้ใช้ที่ลงทะเบียนในระบบ (เฉพาะ Admin)</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>ชื่อผู้ใช้ (Username)</th>
+                            <th>อีเมล (E-mail)</th>
+                            <th>สิทธิ์ (Role)</th>
+                            <th>วันที่สมัคร</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentCaptcha = "";
+        let currentUser = null;
+
+        function generateCaptcha() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let code = "";
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            currentCaptcha = code;
+            const el = document.getElementById("captcha-display");
+            if (el) el.innerText = currentCaptcha;
+        }
+
+        function getUsers() {
+            const data = localStorage.getItem("registered_users");
+            if (!data) {
+                const defaultUsers = [
+                    { username: "admin", email: "admin@example.com", password: "123", role: "admin", registeredAt: "2026-09-01 09:00:00" }
+                ];
+                localStorage.setItem("registered_users", JSON.stringify(defaultUsers));
+                return defaultUsers;
+            }
+            return JSON.parse(data);
+        }
+
+        function saveUsers(users) {
+            localStorage.setItem("registered_users", JSON.stringify(users));
+        }
+
+        const activeCars = {};
+        const parkingRecords = [];
+
+        function hideAllViews() {
+            document.getElementById("home-view").classList.add("hidden");
+            document.getElementById("login-view").classList.add("hidden");
+            document.getElementById("register-view").classList.add("hidden");
+            document.getElementById("dashboard-view").classList.add("hidden");
+        }
+
+        function showAuthPage(type) {
+            hideAllViews();
+            if (type === 'login') {
+                document.getElementById("login-view").classList.remove("hidden");
+                document.getElementById("login-alert").classList.add("hidden");
+            } else if (type === 'register') {
+                document.getElementById("register-view").classList.remove("hidden");
+                document.getElementById("register-alert").classList.add("hidden");
+                generateCaptcha();
+            }
+        }
+
+        function enterAsGuest() {
+            currentUser = { username: "Guest", role: "guest" };
+            applyUserSession();
+        }
+
+        function handleRegister() {
+            const username = document.getElementById("reg-username").value.trim();
+            const email = document.getElementById("reg-email").value.trim();
+            const password = document.getElementById("reg-password").value.trim();
+            const captchaInput = document.getElementById("reg-captcha").value.trim().toUpperCase();
+            const alertBox = document.getElementById("register-alert");
+
+            alertBox.className = "alert-box alert-error";
+
+            if (!username || !email || !password || !captchaInput) {
+                alertBox.innerText = "กรุณากรอกข้อมูลให้ครบทุกช่อง";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            if (!email.includes("@") || !email.includes(".")) {
+                alertBox.innerText = "รูปแบบอีเมลไม่ถูกต้อง";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            if (captchaInput !== currentCaptcha) {
+                alertBox.innerText = "รหัสยืนยันตัวตน (Captcha) ไม่ถูกต้อง";
+                alertBox.classList.remove("hidden");
+                generateCaptcha();
+                return;
+            }
+
+            const users = getUsers();
+            const existsUser = users.some(u => u.username.toLowerCase() === username.toLowerCase());
+            const existsEmail = users.some(u => u.email.toLowerCase() === email.toLowerCase());
+
+            if (existsUser) {
+                alertBox.innerText = "ชื่อผู้ใช้นี้มีในระบบแล้ว";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            if (existsEmail) {
+                alertBox.innerText = "อีเมลนี้ถูกใช้งานแล้ว";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString();
+
+            users.push({ username, email, password, role: "user", registeredAt: dateStr });
+            saveUsers(users);
+
+            document.getElementById("reg-username").value = "";
+            document.getElementById("reg-email").value = "";
+            document.getElementById("reg-password").value = "";
+            document.getElementById("reg-captcha").value = "";
+
+            alertBox.className = "alert-box alert-success";
+            alertBox.innerText = "สมัครสมาชิกสำเร็จ! กำลังนำคุณไปหน้าเข้าสู่ระบบ...";
+            alertBox.classList.remove("hidden");
+
+            setTimeout(() => {
+                showAuthPage('login');
+            }, 1200);
+        }
+
+        function handleLogin() {
+            const inputVal = document.getElementById("login-username").value.trim();
+            const password = document.getElementById("login-password").value.trim();
+            const alertBox = document.getElementById("login-alert");
+            const users = getUsers();
+
+            if (!inputVal || !password) {
+                alertBox.innerText = "กรุณากรอกชื่อผู้ใช้/อีเมล และรหัสผ่านให้ครบถ้วน";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            const foundAccount = users.find(u => 
+                u.username.toLowerCase() === inputVal.toLowerCase() || 
+                (u.email && u.email.toLowerCase() === inputVal.toLowerCase())
+            );
+
+            if (!foundAccount) {
+                alertBox.innerText = "ไม่พบชื่อผู้ใช้หรืออีเมลนี้ในระบบ";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            if (foundAccount.password !== password) {
+                alertBox.innerText = "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
+                alertBox.classList.remove("hidden");
+                return;
+            }
+
+            alertBox.classList.add("hidden");
+            currentUser = foundAccount;
+            applyUserSession();
+        }
+
+        function applyUserSession() {
+            document.getElementById("guest-nav").classList.add("hidden");
+            document.getElementById("user-nav").classList.remove("hidden");
+
+            const badgeClass = currentUser.role === 'admin' ? 'role-admin' : (currentUser.role === 'user' ? 'role-user' : 'role-guest');
+            const roleText = currentUser.role === 'admin' ? 'ผู้ดูแลระบบ' : (currentUser.role === 'user' ? 'สมาชิก' : 'ผู้เข้าชม');
+
+            document.getElementById("user-greeting").innerHTML = `ผู้ใช้งาน: <b>${currentUser.username}</b> <span class="role-badge ${badgeClass}">${roleText}</span>`;
+
+            const adminTabBtn = document.getElementById("tab-users-btn");
+            if (currentUser.role === 'admin') {
+                adminTabBtn.classList.remove("hidden");
+            } else {
+                adminTabBtn.classList.add("hidden");
+            }
+
+            hideAllViews();
+            document.getElementById("dashboard-view").classList.remove("hidden");
+            switchTab('cctv');
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById("guest-nav").classList.remove("hidden");
+            document.getElementById("user-nav").classList.add("hidden");
+            document.getElementById("login-username").value = "";
+            document.getElementById("login-password").value = "";
+            document.getElementById("tab-users-btn").classList.add("hidden");
+            hideAllViews();
+            document.getElementById("home-view").classList.remove("hidden");
+        }
+
+        function switchTab(tab) {
+            if (tab === 'users' && (!currentUser || currentUser.role !== 'admin')) {
+                alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (เฉพาะ Admin เท่านั้น)");
+                return;
+            }
+
+            document.getElementById("sub-cctv").classList.toggle("hidden", tab !== 'cctv');
+            document.getElementById("sub-records").classList.toggle("hidden", tab !== 'records');
+            document.getElementById("sub-users").classList.toggle("hidden", tab !== 'users');
+
+            document.getElementById("tab-cctv-btn").classList.toggle("active", tab === 'cctv');
+            document.getElementById("tab-records-btn").classList.toggle("active", tab === 'records');
+            const userTab = document.getElementById("tab-users-btn");
+            if (userTab) userTab.classList.toggle("active", tab === 'users');
+
+            if (tab === 'records') renderRecords();
+            if (tab === 'users') renderUsersList();
+        }
+
+        function randomPlate() {
+            const chars = "กขคฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ";
+            const c = chars[Math.floor(Math.random() * chars.length)];
+            const numPrefix = Math.floor(Math.random() * 9) + 1;
+            const numSuffix = Math.floor(Math.random() * 9000) + 1000;
+            return `${numPrefix}${c}-${numSuffix}`;
+        }
+
+        function simulateEnter(camId, slot) {
+            const plate = randomPlate();
+            const now = new Date();
+            activeCars[camId] = {
+                plate: plate,
+                startTime: Date.now(),
+                entryStr: now.toLocaleDateString() + ' ' + now.toLocaleTimeString()
+            };
+
+            document.getElementById(`cam-screen-${slot}`).innerHTML = `
+                <span class="overlay">● LIVE | ${camId}</span>
+                <div class="detection-box">
+                    <span style="color:#34d399; font-size:12px; font-weight:600;">[ ตรวจพบยานพาหนะ ]</span><br>
+                    <span class="plate-tag">${plate}</span>
+                </div>
+            `;
+            document.getElementById(`cam-ctrl-${slot}`).innerHTML = `
+                <div style="font-size: 13px; color: var(--text-sub);">เวลาเข้า: <b style="color:var(--text-main);">${activeCars[camId].entryStr}</b></div>
+                <button class="btn-danger" onclick="simulateExit('${camId}', ${slot})">จำลอง: รถออกจากที่จอด</button>
+            `;
+        }
+
+        function simulateExit(camId, slot) {
+            const car = activeCars[camId];
+            const durationSec = Math.floor((Date.now() - car.startTime) / 1000);
+            const mins = Math.floor(durationSec / 60);
+            const secs = durationSec % 60;
+            const now = new Date();
+
+            parkingRecords.unshift({
+                cam: camId,
+                plate: car.plate,
+                entryTime: car.entryStr,
+                exitTime: now.toLocaleDateString() + ' ' + now.toLocaleTimeString(),
+                duration: `${mins} นาที ${secs} วินาที`,
+                status: "ออกแล้ว"
+            });
+
+            delete activeCars[camId];
+
+            document.getElementById(`cam-screen-${slot}`).innerHTML = `
+                <span class="overlay">● LIVE | ${camId}</span>
+                <span style="color: #64748b; font-size: 13px;">ไม่มีการตรวจพบรถยนต์</span>
+            `;
+            document.getElementById(`cam-ctrl-${slot}`).innerHTML = `
+                <button onclick="simulateEnter('${camId}', ${slot})">จำลองเหตุการณ์: รถเข้า</button>
+            `;
+        }
+
+        function renderRecords() {
+            const tbody = document.getElementById("records-tbody");
+            tbody.innerHTML = "";
+
+            if (Object.keys(activeCars).length === 0 && parkingRecords.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:20px;">ยังไม่มีข้อมูลการเข้าจอด</td></tr>`;
+                return;
+            }
+
+            for (const camId in activeCars) {
+                const car = activeCars[camId];
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${camId}</td>
+                        <td><b>${car.plate}</b></td>
+                        <td>${car.entryStr}</td>
+                        <td>-</td>
+                        <td style="color: var(--primary); font-weight: 500;">กำลังจอด...</td>
+                        <td><span class="badge-in">กำลังจอด</span></td>
+                    </tr>
+                `;
+            }
+
+            parkingRecords.forEach(r => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${r.cam}</td>
+                        <td><b>${r.plate}</b></td>
+                        <td>${r.entryTime}</td>
+                        <td>${r.exitTime}</td>
+                        <td>${r.duration}</td>
+                        <td><span class="badge-out">${r.status}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderUsersList() {
+            const tbody = document.getElementById("users-tbody");
+            tbody.innerHTML = "";
+            const users = getUsers();
+
+            users.forEach((u, index) => {
+                const roleBadge = u.role === 'admin' 
+                    ? '<span class="role-badge role-admin">Admin</span>' 
+                    : '<span class="role-badge role-user">User</span>';
+                
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><b>${u.username}</b></td>
+                        <td>${u.email || '-'}</td>
+                        <td>${roleBadge}</td>
+                        <td>${u.registeredAt || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
